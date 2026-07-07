@@ -1,0 +1,13 @@
+build/
+out/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.user
+*.suo
+*.ninja
+CMakeCache.txt
+CMakeFiles/
+Testing/
+_deps/
