@@ -14,3 +14,13 @@ if(MSVC)
 else()
     target_compile_options(leakhound PRIVATE -Wall -Wextra)
 endif()
+
+# Install rule -- used by scikit-build-core to place the binary as a pip
+# console script (SKBUILD_SCRIPTS_DIR), and by a normal `cmake --install`
+# otherwise. Harmless to a plain `cmake --build`.
+include(GNUInstallDirs)
+if(DEFINED SKBUILD_SCRIPTS_DIR)
+    install(TARGETS leakhound RUNTIME DESTINATION "${SKBUILD_SCRIPTS_DIR}")
+else()
+    install(TARGETS leakhound RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()

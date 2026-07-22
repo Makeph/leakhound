@@ -1,0 +1,38 @@
+[build-system]
+requires = ["scikit-build-core>=0.8"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "leakhound"
+version = "0.1.0"
+description = "Zero-dependency C++17 secret scanner - AWS/GitHub/Slack/Stripe keys, PEM, JWTs, entropy heuristics. Single binary, CI-friendly exit codes."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Makeph" }]
+keywords = ["secrets", "scanner", "security", "secret-detection", "credentials", "cli"]
+classifiers = [
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: C++",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/Makeph/leakhound"
+Repository = "https://github.com/Makeph/leakhound"
+Issues = "https://github.com/Makeph/leakhound/issues"
+
+[tool.scikit-build]
+# This wheel ships a compiled binary, not a Python module, so it is
+# Python-version independent (one wheel per platform).
+wheel.py-api = "py3"
+wheel.packages = []
+cmake.version = ">=3.15"
+minimum-version = "0.8"
+
+[tool.scikit-build.sdist]
+# Only the sources needed to build; keep prebuilt junk out of the sdist.
+include = ["src/**", "tests/**", "CMakeLists.txt", "README.md", "SPEC.md", "LICENSE"]
+exclude = ["*.exe", "*.obj", "build/**", "build.bat"]
