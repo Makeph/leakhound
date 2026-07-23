@@ -22,10 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # ubuntu -> manylinux-ish, macos-14 -> arm64, windows -> amd64. macos-13
-        # (Intel) is omitted: its GitHub-hosted runner queue stalls for hours and
-        # blocks publish; Intel-mac users install from the sdist instead.
-        os: [ubuntu-latest, macos-14, windows-latest]
+        # macos-14 -> arm64, windows -> amd64. Linux and Intel-mac binary wheels
+        # are intentionally omitted: `python -m build` on a plain ubuntu runner
+        # emits a raw `linux_x86_64` tag that PyPI rejects (it requires
+        # manylinux, which needs cibuildwheel), and the macos-13 runner queue
+        # stalls for hours. Linux/Intel-mac users install from the sdist.
+        os: [macos-14, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
