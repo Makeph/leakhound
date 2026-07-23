@@ -1,8 +1,8 @@
 name: PyPI
 
-# Build native wheels on every OS (leakhound is a compiled C++ binary, so there
-# is no pure-Python wheel) plus an sdist, then publish to PyPI via Trusted
-# Publishing on a version tag. No API token needed.
+# Build native wheels (leakhound is a compiled C++ binary, so there is no
+# pure-Python wheel) plus an sdist, then publish to PyPI via Trusted Publishing
+# on a version tag. No API token needed.
 #
 # One-time setup on PyPI: add a Trusted Publisher for project `leakhound` ->
 # owner `Makeph`, repo `leakhound`, workflow `pypi.yml`, environment `pypi`.
@@ -22,11 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-14 -> arm64, windows -> amd64. Linux and Intel-mac binary wheels
-        # are intentionally omitted: `python -m build` on a plain ubuntu runner
-        # emits a raw `linux_x86_64` tag that PyPI rejects (it requires
-        # manylinux, which needs cibuildwheel), and the macos-13 runner queue
-        # stalls for hours. Linux/Intel-mac users install from the sdist.
+        # macos-14 -> arm64, windows -> amd64. (Intel mac / macos-13 is skipped:
+        # its runner queue stalls for hours. Intel-mac users use the sdist.)
         os: [macos-14, windows-latest]
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +38,29 @@ jobs:
         with:
           name: wheel-${{ matrix.os }}
           path: dist/*.whl
+
+  # Linux wheels must carry a manylinux tag (PyPI rejects raw linux_x86_64), so
+  # build inside a manylinux_2_28 container (new enough for node20 actions) and
+  # retag the resulting wheel.
+  linux-wheel:
+    name: wheel (linux manylinux)
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux_2_28_x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build + retag manylinux wheel
+        run: |
+          PYBIN=/opt/python/cp312-cp312/bin
+          "$PYBIN/pip" install --upgrade build wheel
+          "$PYBIN/python" -m build --wheel --outdir wheelhouse
+          for w in wheelhouse/*linux_x86_64.whl; do
+            "$PYBIN/python" -m wheel tags --platform-tag manylinux_2_28_x86_64 --remove "$w"
+          done
+          ls -la wheelhouse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-linux
+          path: wheelhouse/*.whl
 
   sdist:
     runs-on: ubuntu-latest
@@ -59,7 +79,7 @@ jobs:
 
   publish:
     name: publish to PyPI
-    needs: [wheels, sdist]
+    needs: [wheels, linux-wheel, sdist]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     environment: pypi
@@ -71,3 +91,7 @@ jobs:
           path: dist
           merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Allow re-firing a tag to add newly-built wheels to an existing
+          # release without failing on files PyPI already has.
+          skip-existing: true
